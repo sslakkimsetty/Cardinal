@@ -104,7 +104,8 @@ export(
 	"risk.colors",
 	"simulateSpectrum",
 	"getCardinalNumBlocks",
-	"setCardinalNumBlocks")
+	"setCardinalNumBlocks",
+	"slice")
 
 exportMethods(
 	"aggregate",
@@ -365,7 +366,7 @@ export(
 	"segmentationTest",
 	"simulateImage",
 	"simulateSpectra",
-	"slice",
+	"sliceImage",
 	"subsetFeatures",
 	"subsetPixels",
 	"summarizeFeatures",

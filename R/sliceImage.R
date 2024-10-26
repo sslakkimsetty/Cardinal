@@ -2,7 +2,7 @@
 #### Slice a spectral image  ####
 ## ------------------------------
 
-slice <- function(x, i = features(x, ...), ...,
+sliceImage <- function(x, i = features(x, ...), ...,
 	run = NULL, simplify = TRUE, drop = TRUE)
 {
 	if ( is.null(run) ) {
@@ -52,4 +52,10 @@ slice <- function(x, i = features(x, ...), ...,
 			ans <- drop(ans)
 	}
 	ans
+}
+
+slice <- function(x, ...)
+{
+	.Deprecated("sliceImage")
+	sliceImage(x, ...)
 }

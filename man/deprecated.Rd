@@ -129,6 +129,8 @@
 \alias{spatialApply}
 \alias{spatialApply,SpectralImagingExperiment-method}
 
+\alias{slice}
+
 \alias{setCardinalNumBlocks}
 \alias{getCardinalNumBlocks}
 

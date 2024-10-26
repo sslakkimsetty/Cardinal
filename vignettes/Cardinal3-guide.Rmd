@@ -605,11 +605,11 @@ subsetPixels(mse, x <= 3, y <= 3)
 
 Sometimes, however, it is useful to index into the data as an actual "data cube", with explicit array dimensions for each spatial dimension.
 
-Use `slice()` to slice an `MSImagingExperiment` as a data cube and extract images.
+Use `sliceImage()` to slice an `MSImagingExperiment` as a data cube and extract images.
 
 ```{r slice}
 # slice image for first mass feature
-a <- slice(mse, 1)
+a <- sliceImage(mse, 1)
 dim(a)
 ```
 
@@ -617,7 +617,7 @@ Because we only sliced a single image, the first 2 dimensions are the spatial di
 
 ```{r slice-mz}
 # slice image for m/z 1003.3
-a2 <- slice(mse, mz=1003.3, drop=FALSE)
+a2 <- sliceImage(mse, mz=1003.3, drop=FALSE)
 dim(a2)
 ```
 Note that when plotting images from raw arrays, the images are upside-down due to differing coordinate conventions used by `graphics::image()`.

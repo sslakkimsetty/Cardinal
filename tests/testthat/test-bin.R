@@ -1,9 +1,9 @@
 require(testthat)
 require(Cardinal)
 
-context("process-bin")
+context("binning")
 
-test_that("process bin - SpectralImagingArrays", {
+test_that("bin - SpectralImagingArrays", {
 
 	path <- CardinalIO::exampleImzMLFile("processed")
 	s <- as(readImzML(path), "SpectralImagingArrays")
@@ -31,7 +31,7 @@ test_that("process bin - SpectralImagingArrays", {
 
 })
 
-test_that("process bin - SpectralImagingExperiment", {
+test_that("bin - SpectralImagingExperiment", {
 
 	path <- CardinalIO::exampleImzMLFile("continuous")
 	s <- as(readImzML(path), "SpectralImagingExperiment")
@@ -59,7 +59,7 @@ test_that("process bin - SpectralImagingExperiment", {
 	
 })
 
-test_that("process bin - MSImagingArrays", {
+test_that("bin - MSImagingArrays", {
 
 	path <- CardinalIO::exampleImzMLFile("processed")
 	ms <- readImzML(path)
@@ -83,7 +83,7 @@ test_that("process bin - MSImagingArrays", {
 
 })
 
-test_that("process bin - MSImagingExperiment", {
+test_that("bin - MSImagingExperiment", {
 
 	path <- CardinalIO::exampleImzMLFile("continuous")
 	ms <- readImzML(path)

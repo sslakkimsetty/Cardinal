@@ -1,9 +1,9 @@
 require(testthat)
 require(Cardinal)
 
-context("slice")
+context("sliceImage")
 
-test_that("slice", {
+test_that("sliceImage", {
 
 	path <- CardinalIO::exampleImzMLFile("continuous")
 	s <- readImzML(path)
@@ -14,11 +14,11 @@ test_that("slice", {
 	s <- cbind(s1, s2)
 
 	mz <- mz(s)[1:2]
-	rs1 <- slice(s, i=1)
-	rs2 <- slice(s, i=1:2)
-	rs3 <- slice(s, mz=mz[1L])
-	rs4 <- slice(s, mz=mz)
-	rs5 <- slice(s, mz=mz, run=1)
+	rs1 <- sliceImage(s, i=1)
+	rs2 <- sliceImage(s, i=1:2)
+	rs3 <- sliceImage(s, mz=mz[1L])
+	rs4 <- sliceImage(s, mz=mz)
+	rs5 <- sliceImage(s, mz=mz, run=1)
 
 	expect_equivalent(dim(rs1), c(3,3,2))
 	expect_equivalent(dim(rs2), c(3,3,2,2))
