@@ -25,6 +25,11 @@ simulateSpectra <- function(n = 1L, npeaks = 50L,
 		mz <- (mz - min(mz)) / max(mz - min(mz))
 		mz <- (from + 0.1 * (to - from)) + (0.8 * (to - from)) * mz
 	}
+	if ( is.unsorted(mz) ) {
+		i <- order(mz)
+		mz <- mz[i]
+		intensity <- intensity[i]
+	}
 	metadata <- list(centroided=centroided)
 	x <- as.vector(mz(from=from, to=to, by=by, units=units))
 	y <- simspec(n=n,
@@ -38,8 +43,9 @@ simulateSpectra <- function(n = 1L, npeaks = 50L,
 		y <- apply(as.matrix(y), 2L,
 			function(yi) {
 				approx1(x, yi, mz, interp="max",
-					tol=0.5 * min(diff(mz)), tol.ref="abs")
+					tol=1 / resolution, tol.ref="x")
 			})
+		x <- mz
 	} else {
 		dm <- dim(y)
 		metadata$peaks <- attr(y, "design")$x
@@ -64,7 +70,8 @@ simulateSpectrum <- function(...)
 simulateImage <- function(pixelData, featureData, preset,
 	from = 0.9 * min(mz), to = 1.1 * max(mz), by = 400,
 	sdrun = 1, sdpixel = 1, spcorr = 0.3, SAR = TRUE,
-	centroided = FALSE, continuous = TRUE, units=c("ppm", "mz"),
+	resolution = 1000, fmax = 0.5, units=c("ppm", "mz"),
+	centroided = FALSE, continuous = TRUE,
 	verbose = getCardinalVerbose(), chunkopts = list(),
 	BPPARAM = getCardinalBPPARAM(), ...)
 {
@@ -91,7 +98,8 @@ simulateImage <- function(pixelData, featureData, preset,
 	if ( nrun(pixelData) > 1L ) {
 		return(.simulateImages(pixelData=pixelData, featureData=featureData,
 			from=force(from), to=force(to), by=force(by),
-			sdrun=sdrun, sdpixel=sdpixel, spcorr=spcorr, units=units,
+			sdrun=sdrun, sdpixel=sdpixel, spcorr=spcorr,
+			resolution=resolution, fmax=fmax, units=units,
 			centroided=centroided, continuous=continuous,
 			verbose=verbose, chunkopts=chunkopts,
 			BPPARAM=BPPARAM, ...))
@@ -148,7 +156,7 @@ simulateImage <- function(pixelData, featureData, preset,
 		message=verbose)
 	group <- as.matrix(pdata)
 	SIMULATE <- isofun(function(i, group, mz, intensity,
-		from, to, by, units, runerr, pixelerr, ...)
+		from, to, by, resolution, fmax, units, runerr, pixelerr, ...)
 	{
 		present <- group[i,,drop=TRUE]
 		if ( any(present) ) {
@@ -157,13 +165,15 @@ simulateImage <- function(pixelData, featureData, preset,
 			x <- rep.int(0, length(mz))
 		}
 		x <- pmax(0, x + runerr + pixelerr[i])
-		simulateSpectra(1L, mz=mz, intensity=x,
-			from=from, to=to, by=by, units=units,
+		simulateSpectra(1L,
+			mz=mz, intensity=x, from=from, to=to, by=by,
+			resolution=resolution, fmax=fmax, units=units,
 			centroided=FALSE, ...)$intensity
 	}, CardinalEnv())
 	spectra <- chunkLapply(seq_len(nrow(group)), SIMULATE,
-		group=group, mz=mz, intensity=intensity, units=units,
-		from=from, to=to, by=by, runerr=runerr, pixelerr=pixelerr,
+		group=group, mz=mz, intensity=intensity, from=from, to=to, by=by,
+		resolution=resolution, fmax=fmax, units=units,
+		runerr=runerr, pixelerr=pixelerr,
 		verbose=verbose, chunkopts=chunkopts, RNG=TRUE,
 		BPPARAM=BPPARAM, ...)
 	# process spectra
@@ -173,12 +183,12 @@ simulateImage <- function(pixelData, featureData, preset,
 			spectra <- vapply(spectra,
 				function(s) {
 					if ( length(mz) > 1L ) {
-						tol <- 0.5 * min(diff(mz))
+						tol <- 1 / resolution
 					} else {
 						tol <- Inf
 					}
 					approx1(domain, s, mz, interp="max",
-						tol=tol, tol.ref="abs")
+						tol=tol, tol.ref="x")
 				}, numeric(length(mz)))
 			if ( is.null(dim(spectra)) )
 				spectra <- t(spectra)

@@ -28,7 +28,8 @@ simulateSpectra(n = 1L, npeaks = 50L,
 simulateImage(pixelData, featureData, preset,
     from = 0.9 * min(mz), to = 1.1 * max(mz), by = 400,
     sdrun = 1, sdpixel = 1, spcorr = 0.3, SAR = TRUE,
-    centroided = FALSE, continuous = TRUE, units=c("ppm", "mz"),
+    resolution = 1000, fmax = 0.5, units=c("ppm", "mz"),
+    centroided = FALSE, continuous = TRUE,
     verbose = getCardinalVerbose(), chunkopts = list(),
     BPPARAM = getCardinalBPPARAM(), \dots)
 
