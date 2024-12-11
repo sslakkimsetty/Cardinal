@@ -24,12 +24,15 @@ estimateDomain <- function(xlist,
 		verbose=verbose, chunkopts=chunkopts,
 		BPPARAM=BPPARAM, ...)
 	ans <- do.call(rbind, ans)
-	from <- floor(min(ans[,1L], na.rm=TRUE))
-	to <- ceiling(max(ans[,2L], na.rm=TRUE))
-	by <- match.fun(width)(ans[,3L], na.rm=TRUE)
+	colnames(ans) <- c("min", "max", "res")
+	from <- floor(min(ans[,"min"], na.rm=TRUE))
+	to <- ceiling(max(ans[,"max"], na.rm=TRUE))
+	by <- match.fun(width)(ans[,"res"], na.rm=TRUE)
+	minRelativeRes <- 5e-7 # == 0.5 ppm
+	minAbsoluteRes <- 1e-4 # == 0.0001
 	by <- switch(units,
-		relative=round(2 * by, digits=6L) * 0.5,
-		absolute=round(by, digits=4L))
+		relative=max(minRelativeRes, round(2 * by, digits=6L) * 0.5),
+		absolute=max(minAbsoluteRes, round(by, digits=4L)))
 	ans <- switch(units,
 		relative=seq_rel(from, to, by=by),
 		absolute=seq.default(from, to, by=by))

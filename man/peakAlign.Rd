@@ -14,21 +14,25 @@
 
 \usage{
 \S4method{peakAlign}{MSImagingExperiment}(object, ref,
-    spectra = "intensity", index = "mz", binratio = 2,
+    spectra = "intensity", index = "mz",
+    binfun = "min", binratio = 2,
     tolerance = NA, units = c("ppm", "mz"), \dots)
 
 \S4method{peakAlign}{MSImagingArrays}(object, ref,
-    spectra = "intensity", index = "mz", binratio = 2,
+    spectra = "intensity", index = "mz",
+    binfun = "min", binratio = 2,
     tolerance = NA, units = c("ppm", "mz"), \dots)
 
 \S4method{peakAlign}{SpectralImagingExperiment}(object, ref,
-    spectra = "intensity", index = NULL, binratio = 2,
+    spectra = "intensity", index = NULL,
+    binfun = "min", binratio = 2,
     tolerance = NA, units = c("relative", "absolute"),
     verbose = getCardinalVerbose(), chunkopts = list(),
     BPPARAM = getCardinalBPPARAM(), \dots)
 
 \S4method{peakAlign}{SpectralImagingArrays}(object, ref,
-    spectra = "intensity", index = NULL, binratio = 2,
+    spectra = "intensity", index = NULL,
+    binfun = "min", binratio = 2,
     tolerance = NA, units = c("relative", "absolute"),
     verbose = getCardinalVerbose(), chunkopts = list(),
     BPPARAM = getCardinalBPPARAM(), \dots)
@@ -42,6 +46,8 @@
     \item{spectra}{The name of the array in \code{spectraData()} to use for the peak intensities.}
 
     \item{index}{The name of the array in \code{spectraData()} (for \code{SpectralImagingArrays}) or column in \code{featureData()} (for \code{SpectralImagingExperiment}) to use for the peak locations.}
+
+    \item{binfun}{The function used to summarize the minimum distance between same-spectrum peaks across all spectra. This is passed to \code{estimateDomain} as \code{width} (see "Details").}
     
     \item{binratio}{The ratio between the alignment tolerance and the peak bin widths. If \code{tolerance} is \code{NA}, then this is also used to estimate the tolerance from the shared domain (see "Details").}
     
@@ -63,7 +69,7 @@
 
     If \code{ref} is provided, then the aligned peaks are returned immediately without additional processing. (Peaks are binned on-the-fly to the reference peak locations.)
 
-    If \code{ref} is not provided, then the shared peaks must be determined automatically. This starts with creation of a shared domain giving a list of possible peak locations. The shared domain is estimated by \code{estimateDomain()} with \code{width="min"}.
+    If \code{ref} is not provided, then the shared peaks must be determined automatically. This starts with creation of a shared domain giving a list of possible peak locations. The shared domain is estimated by \code{estimateDomain()}.
 
     Next, \code{\link[matter]{binpeaks}} is used to bin the observed peaks to the shared domain. Then, \code{\link[matter]{mergepeaks}} is used to merge peaks that are separated by a distance less than the given \code{tolerance}.
 

@@ -63,7 +63,8 @@ setMethod("peakProcess", "MSImagingExperiment_OR_Arrays",
 		# check for peak picking
 		if ( isCentroided(object) ) {
 			if ( length(processingData(object)) == 0L &&
-				!is.sparse(spectra(object, spectra)) )
+				!is.sparse(spectra(object, spectra)) &&
+				!is(object, "MSImagingArrays") )
 			{
 				.Log("peaks are already processed",
 					message=verbose)
@@ -101,8 +102,9 @@ setMethod("peakProcess", "MSImagingExperiment_OR_Arrays",
 				# remove singleton peaks
 				n <- 1L
 			}
+			label <- if (n / length(object) < 0.01) "<" else "~"
 			.Log("filtering to keep only peaks with counts > ", n, " ",
-				"(", round(100 * n / length(object), digits=2L),
+				"(", label, round(100 * n / length(object), digits=2L),
 				"% of considered spectra)",
 				message=verbose)
 			object <- object[featureData(object)[["count"]] > n,]
@@ -121,7 +123,8 @@ setMethod("peakProcess", "MSImagingExperiment_OR_Arrays",
 
 setMethod("peakAlign", "MSImagingExperiment",
 	function(object, ref,
-		spectra = "intensity", index = "mz", binratio = 2,
+		spectra = "intensity", index = "mz",
+		binfun = "min", binratio = 2,
 		tolerance = NA, units = c("ppm", "mz"), ...)
 {
 	if ( !missing(ref) ) {
@@ -135,8 +138,10 @@ setMethod("peakAlign", "MSImagingExperiment",
 		tolerance <- switch(units,
 			relative=1e-6 * tolerance,
 			absolute=tolerance)
-	ans <- callNextMethod(object, ref=ref, spectra=spectra, index=index,
-		binratio=binratio, tolerance=tolerance, units=units, ...)
+	ans <- callNextMethod(object, ref=ref,
+		spectra=spectra, index=index,
+		binfun=binfun, binratio=binratio,
+		tolerance=tolerance, units=units, ...)
 	spectraData <- spectraData(ans)
 	featureData <- as(featureData(ans), "MassDataFrame")
 	new("MSImagingExperiment", spectraData=spectraData,
@@ -147,7 +152,8 @@ setMethod("peakAlign", "MSImagingExperiment",
 
 setMethod("peakAlign", "MSImagingArrays",
 	function(object, ref,
-		spectra = "intensity", index = "mz", binratio = 2,
+		spectra = "intensity", index = "mz",
+		binfun = "min", binratio = 2,
 		tolerance = NA, units = c("ppm", "mz"), ...)
 {
 	if ( !missing(ref) ) {
@@ -161,8 +167,10 @@ setMethod("peakAlign", "MSImagingArrays",
 		tolerance <- switch(units,
 			relative=1e-6 * tolerance,
 			absolute=tolerance)
-	ans <- callNextMethod(object, ref=ref, spectra=spectra, index=index,
-		binratio=binratio, tolerance=tolerance, units=units, ...)
+	ans <- callNextMethod(object, ref=ref,
+		spectra=spectra, index=index,
+		binfun=binfun, binratio=binratio,
+		tolerance=tolerance, units=units, ...)
 	spectraData <- spectraData(ans)
 	featureData <- as(featureData(ans), "MassDataFrame")
 	new("MSImagingExperiment", spectraData=spectraData,
@@ -173,7 +181,8 @@ setMethod("peakAlign", "MSImagingArrays",
 
 setMethod("peakAlign", "SpectralImagingExperiment",
 	function(object, ref,
-		spectra = "intensity", index = NULL, binratio = 2,
+		spectra = "intensity", index = NULL,
+		binfun = "min", binratio = 2,
 		tolerance = NA, units = c("relative", "absolute"),
 		verbose = getCardinalVerbose(), chunkopts = list(),
 		BPPARAM = getCardinalBPPARAM(), ...)
@@ -217,14 +226,16 @@ setMethod("peakAlign", "SpectralImagingExperiment",
 		message=verbose)
 	.peakAlign(object, ref=ref, spectra=spectra, index=index,
 		domain=domain, spectraname=snm, indexname=inm,
-		binratio=binratio, tolerance=tolerance, units=units,
+		binfun=binfun, binratio=binratio,
+		tolerance=tolerance, units=units,
 		verbose=verbose, chunkopts=chunkopts,
 		BPPARAM=BPPARAM)
 })
 
 setMethod("peakAlign", "SpectralImagingArrays",
 	function(object, ref,
-		spectra = "intensity", index = NULL, binratio = 2,
+		spectra = "intensity", index = NULL,
+		binfun = "min", binratio = 2,
 		tolerance = NA, units = c("relative", "absolute"),
 		verbose = getCardinalVerbose(), chunkopts = list(),
 		BPPARAM = getCardinalBPPARAM(), ...)
@@ -259,20 +270,25 @@ setMethod("peakAlign", "SpectralImagingArrays",
 	}
 	.peakAlign(object, ref=ref, spectra=spectra, index=index,
 		domain=domain, spectraname=snm, indexname=inm,
-		binratio=binratio, tolerance=tolerance, units=units,
+		binfun=binfun, binratio=binratio,
+		tolerance=tolerance, units=units,
 		verbose=verbose, chunkopts=chunkopts,
 		BPPARAM=BPPARAM)
 })
 
-.peakAlign <- function(object, ref, spectra, index,
-	domain, spectraname, indexname, binratio, tolerance, units,
+.peakAlign <- function(object, ref, spectra, index, domain,
+	spectraname, indexname, binfun, binratio, tolerance, units,
 	verbose, chunkopts, BPPARAM)
 {
 	tol.ref <- switch(units, relative="x", absolute="abs")
 	if ( is.null(domain) || is.na(tolerance) ) {
+		width <- match.arg(binfun, c("median", "min", "max", "mean"))
 		.Log("summarizing peak gaps for alignment",
 			message=verbose)
-		indexbins <- estimateDomain(index, width="min", units=units,
+		.Log("using bin function ", sQuote(width),
+			" to summarize peak gaps across spectra",
+			message=verbose)
+		indexbins <- estimateDomain(index, width=width, units=units,
 			verbose=verbose, chunkopts=chunkopts, BPPARAM=BPPARAM)
 	}
 	if ( is.na(tolerance) ) {
@@ -289,6 +305,10 @@ setMethod("peakAlign", "SpectralImagingArrays",
 	}
 	if ( is.null(domain) ) {
 		# set peak bins estimated from index
+		res <- estres(indexbins, ref=tol.ref)
+		res <- switch(units,
+			relative=round(2 * res, digits=6L) * 0.5,
+			absolute=round(res, digits=4L))
 		domain <- indexbins
 	} else {
 		# set peak bins to (tolerance / binratio)
@@ -298,6 +318,12 @@ setMethod("peakAlign", "SpectralImagingArrays",
 			absolute=seq(min(domain), max(domain), by=res))
 	}
 	if ( missing(ref) || is.null(ref) ) {
+		.Log("using bin ratio of ", binratio,
+			" to create peak bins (per tolerance half-window)",
+			message=verbose)
+		.Log("using peak bins with ", units,
+			" resolution of ", res,
+			message=verbose)
 		.Log("binning peaks to create shared reference",
 			message=verbose)
 		FUN <- isofun(function(x, domain, tol, tol.ref) {
@@ -309,6 +335,9 @@ setMethod("peakAlign", "SpectralImagingArrays",
 			simplify=matter::stat_c,
 			verbose=verbose, chunkopts=chunkopts,
 			BPPARAM=BPPARAM)
+		.Log("merging peak bins with ", units,
+			" centroid differences <= ", tol,
+			message=verbose)
 		peaks <- peaks[!is.na(peaks)]
 		peaks <- mergepeaks(peaks, tol=tol, tol.ref=tol.ref)
 		n <- nobs(peaks)
@@ -336,7 +365,9 @@ setMethod("peakAlign", "SpectralImagingArrays",
 		featureData[["freq"]] <- n / length(object)
 	}
 	label <- "peak alignment"
-	metadata <- list(binratio=binratio, tolerance=unname(tol), units=units)
+	metadata <- list(
+		tolerance=unname(tol), units=units,
+		binfun=binfun, binratio=binratio)
 	metadata <- setNames(list(metadata), label)
 	metadata <- setNames(list(metadata), .processing_id())
 	metadata <- c(metadata(object), metadata)
@@ -361,7 +392,7 @@ setMethod("peakPick", "MSImagingExperiment",
 			ref <- mz(ref)
 	}
 	if ( isCentroided(object) ) {
-		.Error("object is already centroided")
+		.Warn("object is already centroided")
 	} else {
 		centroided(object) <- TRUE
 	}
@@ -387,7 +418,7 @@ setMethod("peakPick", "MSImagingArrays",
 			ref <- mz(ref)
 	}
 	if ( isCentroided(object) ) {
-		.Error("object is already centroided")
+		.Warn("object is already centroided")
 	} else {
 		centroided(object) <- TRUE
 	}
